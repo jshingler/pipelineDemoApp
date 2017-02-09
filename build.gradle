@@ -22,10 +22,26 @@ jar {
 	version = '0.0.1-SNAPSHOT'
 }
 
+group = 'com.example.github'
+version = getProp('newVersion') ?: '0.0.1-SNAPSHOT'
+
+ext {
+	projectGroupId = project.group
+	projectArtifactId = project.name
+	projectVersion = project.version
+	stubrunnerIds = 'com.example.github:github-webhook'
+}
+
 sourceCompatibility = 1.8
 
 repositories {
 	mavenCentral()
+	mavenLocal()
+	if (getProp("M2_LOCAL")) {
+		maven {
+			url getProp("M2_LOCAL")
+		}
+	}
 }
 
 
@@ -40,4 +56,30 @@ dependencies {
 	runtime('com.h2database:h2')
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 	testCompile('org.springframework.restdocs:spring-restdocs-mockmvc')
+}
+
+
+
+publishing {
+	repositories {
+		maven {
+			url getProp('REPO_WITH_JARS') ?: 'http://localhost:8081/artifactory/libs-release-local'
+			credentials {
+				username getProp('M2_SETTINGS_REPO_USERNAME') ?: 'admin'
+				password getProp('M2_SETTINGS_REPO_PASSWORD') ?: 'password'
+			}
+		}
+	}
+	publications {
+		mavenJava(MavenPublication) {
+			artifactId project.name
+			from components.java
+		}
+	}
+}
+
+String getProp(String propName) {
+	return hasProperty(propName) ?
+			(getProperty(propName) ?: System.properties[propName]) : System.properties[propName] ?:
+			System.getenv(propName)
 }
